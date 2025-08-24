@@ -59,7 +59,7 @@ services:
     entrypoint: /bin/sh
     restart: unless-stopped
     ports:
-      - "${EXPOSE_VITE_PORT:-7001}:7001"
+      - "${EXPOSE_VITE_PORT:-7001}:${EXPOSE_VITE_PORT:-7001}"
     working_dir: /front
     volumes:
       - .:/front

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+cd /etc/supervisor/conf.d/
+supervisord --nodaemon --configuration /etc/supervisor/supervisord.conf
+
+#LOG=/var/log/supervisor/supervisord.log
+#
+#echo Waiting for log file: $LOG
+#
+## Wait for LOG file create, then run tail -f to watch the content
+#
+#while [ ! -f $LOG ]; do
+#    sleep 1
+#done
+#
+#echo Log file found, watching content
+#
+#tail -f $LOG

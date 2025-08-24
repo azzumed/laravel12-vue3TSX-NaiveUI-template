@@ -1,0 +1,89 @@
+services:
+  php:
+    build:
+      context: .docker/services/php
+      args:
+        USER_UID: "${USER_UID:-1000}"
+        USER_GID: "${USER_GID:-1000}"
+        CONTAINER_USER: "www"
+        ENTRYPOINT: "docker-php-entrypoint"
+    restart: unless-stopped
+    env_file:
+      - .docker/env/php.env
+    environment:
+      XDEBUG_MODE: "${XDEBUG_MODE:-debug}"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - ./.docker/services/php/.bashrc:/home/www/.bashrc:ro
+      - ./.docker/services/php/override.ini:/usr/local/etc/php/conf.d/override.ini:ro
+      - ./.docker/services/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini:ro
+    networks:
+      - main
+
+  supervisor:
+    build:
+      context: .docker/services/php
+      args:
+        USER_UID: "${USER_UID:-1000}"
+        USER_GID: "${USER_GID:-1000}"
+        CONTAINER_USER: "root"
+        ENTRYPOINT: "docker-supervisor-entrypoint"
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - ./.docker/services/php/override.ini:/usr/local/etc/php/conf.d/override.ini:ro
+      - ./.docker/services/php/supervisor/supervisord.conf:/etc/supervisor/supervisord.conf:ro
+      - ./.docker/services/php/supervisor/laravel-schedule.conf:/etc/supervisor/conf.d/laravel-schedule.conf:ro
+      - ./.docker/services/php/supervisor/laravel-worker.conf:/etc/supervisor/conf.d/laravel-worker.conf:ro
+    networks:
+      - main
+
+  web:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "${EXPOSE_WEB_PORT:-7000}:80"
+    volumes:
+      - ./.docker/services/web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - .:/app
+    networks:
+      - main
+
+  vite:
+    image: node:alpine
+    entrypoint: /bin/sh
+    restart: unless-stopped
+    ports:
+      - "${EXPOSE_VITE_PORT:-7001}:7001"
+    working_dir: /front
+    volumes:
+      - .:/front
+    tty: true
+    networks:
+      - main
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    ports:
+      - "${EXPOSE_DB_PORT:-7002}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - main
+
+networks:
+  main:
+volumes:
+  db-data:
